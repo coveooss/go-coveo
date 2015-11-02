@@ -1,11 +1,16 @@
 package analytics
 
 import (
+	"bytes"
+	"encoding/json"
+	"io/ioutil"
 	"net/http"
 )
 
 type Client interface {
+	SendInterfaceLoad(InterfaceLoadEvent) ([]*http.Cookie, error)
 	SendSearchEvent(SearchEvent) (*SearchEventResponse, error)
+	SendSearchEventWithCookie(event SearchEvent, cookie *http.Cookie) (string, error)
 	SendSearchesEvent([]SearchEvent) (*SearchEventsResponse, error)
 	SendClickEvent(ClickEvent) (*ClickEventResponse, error)
 	SendCustomEvent(CustomEvent) (*CustomEventResponse, error)
@@ -22,7 +27,7 @@ type Config struct {
 func NewClient(c Config) (Client, error) {
 	return &client{
 		token:      c.Token,
-		endpoint:   "https://usageanalytics.coveo.com/v14/",
+		endpoint:   "https://usageanalytics.coveo.com/rest/v14/analytics/",
 		httpClient: http.DefaultClient,
 		useragent:  c.UserAgent,
 	}, nil
@@ -35,103 +40,106 @@ type client struct {
 	useragent  string
 }
 
-type SearchEvent struct {
-	QueryText       string `json:"queryText"`
-	AdvancedQuery   string `json:"advancedQuery"`
-	NumberOfResults int    `json:"numberOfResults"`
-	Contextual      bool   `json:"contextual"`
-	ResponseTime    int    `json:"responseTime"`
-	Results         []struct {
-		DocumentUri     string `json:"documentUri"`
-		DocumentUriHash string `json:"documentUriHash"`
-	} `json:"results"`
-	UserGroups          []string               `json:"userGroups"`
-	DocumentURI         string                 `json:"documentUri"`
-	DocumentURIHash     string                 `json:"DocumentUriHash"`
-	SearchQueryUID      string                 `json:"searchQueryUid"`
-	CollectionName      string                 `json:"collectionName"`
-	SourceName          string                 `json:"sourceName"`
-	DocumentPosition    string                 `json:"documentPosition"`
-	ActionCause         string                 `json:"actionCause"`
-	DocumentTitle       string                 `json:"documentTitle"`
-	DocumentURL         string                 `json:"documentUrl"`
-	QueryPipeline       string                 `json:"queryPipeline"`
-	RankingModifier     string                 `json:"rankingModifier"`
-	EventValue          string                 `json:"eventValue"`
-	EventType           string                 `json:"eventType"`
-	LastSearchQueryUid  string                 `json:"lastSearchQueryUid"`
-	UserDisplayName     string                 `json:"userDisplayName"`
-	UserAgent           string                 `json:"userAgent"`
-	Anonymous           bool                   `json:"anonymous"`
-	CustomData          map[string]interface{} `json:"customData,omitempty"`
-	Device              string                 `json:"device"`
-	Mobile              bool                   `json:"mobile"`
-	SplitTestRunName    string                 `json:"splitTestRunName"`
-	SplitTestRunVersion string                 `json:"splitTestRunVersion"`
-	OriginLevel1        string                 `json:"originLevel1"`
-	OriginLevel2        string                 `json:"originLevel2"`
-	OriginLevel3        string                 `json:"originLevel3"`
-	Username            string                 `json:"username"`
-	Language            string                 `json:"language"`
-}
-type ClickEvent struct {
-	DocumentURI         string                 `json:"documentUri"`
-	DocumentURIHash     string                 `json:"DocumentUriHash"`
-	SearchQueryUID      string                 `json:"searchQueryUid"`
-	CollectionName      string                 `json:"collectionName"`
-	SourceName          string                 `json:"sourceName"`
-	DocumentPosition    string                 `json:"documentPosition"`
-	ActionCause         string                 `json:"actionCause"`
-	DocumentTitle       string                 `json:"documentTitle"`
-	DocumentURL         string                 `json:"documentUrl"`
-	QueryPipeline       string                 `json:"queryPipeline"`
-	RankingModifier     string                 `json:"rankingModifier"`
-	EventValue          string                 `json:"eventValue"`
-	EventType           string                 `json:"eventType"`
-	LastSearchQueryUid  string                 `json:"lastSearchQueryUid"`
-	UserDisplayName     string                 `json:"userDisplayName"`
-	UserAgent           string                 `json:"userAgent"`
-	Anonymous           bool                   `json:"anonymous"`
-	CustomData          map[string]interface{} `json:"customData,omitempty"`
-	Device              string                 `json:"device"`
-	Mobile              bool                   `json:"mobile"`
-	SplitTestRunName    string                 `json:"splitTestRunName"`
-	SplitTestRunVersion string                 `json:"splitTestRunVersion"`
-	OriginLevel1        string                 `json:"originLevel1"`
-	OriginLevel2        string                 `json:"originLevel2"`
-	OriginLevel3        string                 `json:"originLevel3"`
-	Username            string                 `json:"username"`
-	Language            string                 `json:"language"`
-}
-
-type CustomEvent struct {
-	EventValue          string                 `json:"eventValue"`
-	EventType           string                 `json:"eventType"`
-	LastSearchQueryUid  string                 `json:"lastSearchQueryUid"`
-	UserDisplayName     string                 `json:"userDisplayName"`
-	UserAgent           string                 `json:"userAgent"`
-	Anonymous           bool                   `json:"anonymous"`
-	CustomData          map[string]interface{} `json:"customData,omitempty"`
-	Device              string                 `json:"device"`
-	Mobile              bool                   `json:"mobile"`
-	SplitTestRunName    string                 `json:"splitTestRunName"`
-	SplitTestRunVersion string                 `json:"splitTestRunVersion"`
-	OriginLevel1        string                 `json:"originLevel1"`
-	OriginLevel2        string                 `json:"originLevel2"`
-	OriginLevel3        string                 `json:"originLevel3"`
-	Username            string                 `json:"username"`
-	Language            string                 `json:"language"`
-}
-
+type InterfaceLoadResponse struct{}
 type StatusResponse struct{}
-type SearchEventResponse struct{}
+type SearchEventResponse struct {
+	SearchUID string `json:"searchEventUid"`
+	VisitID   string `json:"visitId"`
+}
 type SearchEventsResponse struct{}
 type ClickEventResponse struct{}
 type CustomEventResponse struct{}
 type VisitResponse struct{}
 
+/*
+*	Send the Interface load event to the usage analytics endpoint.
+*	This needs to be called before any other event sent to UA.
+*
+*	Will return the setCookie and the potential errors
+ */
+func (c *client) SendInterfaceLoad(event InterfaceLoadEvent) ([]*http.Cookie, error) {
+	marshalledEvent, err := json.Marshal(event)
+	if err != nil {
+		return nil, err
+	}
+	buf := bytes.NewReader(marshalledEvent)
+
+	req, err := http.NewRequest("POST", c.endpoint+"search/", buf)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Authorization", "Bearer "+c.token)
+	req.Header.Add("Content-Type", "application/json")
+	req.Header.Add("Accepts", "application/json")
+	req.Header.Set("User-Agent", c.useragent)
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	cookies := resp.Cookies()
+
+	return cookies, err
+}
+
 func (c *client) SendSearchEvent(event SearchEvent) (*SearchEventResponse, error) {
-	return nil, nil
+	marshalledEvent, err := json.Marshal(event)
+	if err != nil {
+		return nil, err
+	}
+	buf := bytes.NewReader(marshalledEvent)
+
+	req, err := http.NewRequest("POST", c.endpoint+"search/", buf)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Authorization", "Bearer "+c.token)
+	req.Header.Add("Content-Type", "application/json")
+	req.Header.Add("Accepts", "application/json")
+	req.Header.Set("User-Agent", c.useragent)
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	queryResponse := &SearchEventResponse{}
+	err = json.NewDecoder(resp.Body).Decode(queryResponse)
+	return queryResponse, err
+}
+func (c *client) SendSearchEventWithCookie(event SearchEvent, cookie *http.Cookie) (string, error) {
+	marshalledEvent, err := json.Marshal(event)
+	if err != nil {
+		return "", err
+	}
+	buf := bytes.NewReader(marshalledEvent)
+
+	req, err := http.NewRequest("POST", c.endpoint+"search/", buf)
+	if err != nil {
+		return "", err
+	}
+
+	req.Header.Add("Authorization", "Bearer "+c.token)
+	req.Header.Add("Content-Type", "application/json")
+	req.Header.Add("Accepts", "application/json")
+	req.Header.Set("User-Agent", c.useragent)
+
+	req.AddCookie(cookie)
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	contents, err := ioutil.ReadAll(resp.Body)
+
+	return string(contents), err
 }
 func (c *client) SendSearchesEvent(event []SearchEvent) (*SearchEventsResponse, error) {
 	return nil, nil
