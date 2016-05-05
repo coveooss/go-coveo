@@ -1,5 +1,6 @@
 package search
 
+// Query Struct reprensenting a query sent to the index.
 type Query struct {
 	Q               string            `json:"q,omitempty"`
 	AQ              string            `json:"aq,omitempty"`
@@ -11,6 +12,8 @@ type Query struct {
 	Tab             string            `json:"tab,omitempty"`
 }
 
+// GroupByRequest Struct representing a GroupByRequest send to the index. It is
+// used to send data to the facets of a search page.
 type GroupByRequest struct {
 	Field                 string `json:"field"`
 	MaximumNumberOfValues int    `json:"maximumNumberOfValues,omitempty"`
