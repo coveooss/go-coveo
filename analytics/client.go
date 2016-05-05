@@ -4,15 +4,16 @@ import (
 	"bytes"
 	"encoding/json"
 	"net/http"
+	"strings"
 )
 
 const (
 	// EndpointProduction is the Analytics production endpoint
-	EndpointProduction = "https://usageanalytics.coveo.com/rest/v14/analytics/"
+	EndpointProduction = "https://usageanalytics.coveo.com/rest/v15/analytics/"
 	// EndpointStaging is the Analytics staging endpoint
-	EndpointStaging = "https://usageanalyticsstaging.coveo.com/rest/v14/analytics/"
+	EndpointStaging = "https://usageanalyticsstaging.coveo.com/rest/v15/analytics/"
 	// EndpointDevelopment is the Analytics development endpoint
-	EndpointDevelopment = "https://usageanalyticsdev.coveo.com/rest/v14/analytics/"
+	EndpointDevelopment = "https://usageanalyticsdev.coveo.com/rest/v15/analytics/"
 )
 
 // Client is the basic element of the usage analytics service, it wraps a http
@@ -27,10 +28,19 @@ type Client interface {
 	// using the batch call, as the response is not important it only
 	// returns an error
 	SendSearchesEvent([]SearchEvent) error
+
 	// SendClickEvent sends a click to the analytics service, as the
 	// response is not important it only returns an error
 	SendClickEvent(*ClickEvent) error
+
+	// SendCustomEvent sends a custom event to the analytics service, as the
+	// response is not important it only returns an error
 	SendCustomEvent(CustomEvent) error
+
+	// SendViewEvent sends a view event to the analytics service, as the
+	// response is not important it only returns an error
+	SendViewEvent(*ViewEvent) error
+
 	GetVisit() (*VisitResponse, error)
 	GetStatus() (*StatusResponse, error)
 	DeleteVisit() (bool, error)
@@ -123,6 +133,21 @@ func NewCustomEvent() (*CustomEvent, error) {
 	}, nil
 }
 
+// NewViewEvent creates a ViewEvent which can then be changed
+func NewViewEvent() *ViewEvent {
+	return &ViewEvent{
+		ActionEvent: &ActionEvent{
+			Language:     "en",
+			Device:       "Bot",
+			OriginLevel1: "default",
+			OriginLevel2: "All",
+		},
+		PageURI:      "",
+		PageReferrer: "",
+		PageTitle:    "",
+	}
+}
+
 // StatusResponse is the response to a Status service call
 type StatusResponse struct{}
 
@@ -159,6 +184,12 @@ func (c *client) SendClickEvent(event *ClickEvent) error {
 // SendCustomEvent Send a request to usage analytics to create a new custom event.
 func (c *client) SendCustomEvent(event CustomEvent) error {
 	err := c.sendEventRequest("custom/", event)
+	return err
+}
+
+// SendViewEvent Send a request to usage analytics to create a new view event.
+func (c *client) SendViewEvent(event *ViewEvent) error {
+	err := c.sendEventRequest("view/", event)
 	return err
 }
 
@@ -214,4 +245,37 @@ func (c *client) sendEventRequest(path string, event interface{}) error {
 	}
 
 	return nil
+}
+
+func (c *client) sendRawEventRequest(method string, path string, body string) error {
+	req, err := http.NewRequest(method, c.endpoint+path, strings.NewReader(body))
+	if err != nil {
+		return err
+	}
+
+	if c.cookies != nil {
+		for _, cookie := range c.cookies {
+			req.AddCookie(cookie)
+		}
+	}
+	req.Header.Add("Authorization", "Beared "+c.token)
+	req.Header.Add("Content-Type", "application/json")
+	req.Header.Add("Accepts", "application/json")
+	req.Header.Set("User-Agent", c.useragent)
+	if c.ip != "" {
+		req.Header.Add("X-Forwarded-For", c.ip)
+	}
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if c.cookies == nil {
+		cookies := resp.Cookies()
+		c.cookies = cookies
+	}
+
+	return err
 }

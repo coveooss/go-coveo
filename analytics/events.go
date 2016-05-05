@@ -56,3 +56,10 @@ type CustomEvent struct {
 	EventValue         string `json:"eventValue"`
 	LastSearchQueryUID string `json:"lastSearchQueryUid,omitempty"`
 }
+
+type ViewEvent struct {
+	*ActionEvent
+	PageURI      string `json:"location"`
+	PageReferrer string `json:"referrer"`
+	PageTitle    string `json:"title"`
+}
