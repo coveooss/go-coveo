@@ -44,7 +44,7 @@ type Client interface {
 	GetVisit() (*VisitResponse, error)
 	GetStatus() (*StatusResponse, error)
 	DeleteVisit() (bool, error)
-	GetCookies() ([]*http.Cookie, error)
+	GetCookies() []*http.Cookie
 }
 
 // Config is the configuration of the usageanalytics client
@@ -60,8 +60,8 @@ type Config struct {
 }
 
 // NewClient return a capable Coveo Usage Analytics service client. It currently
-// uses V14 of the API.
-func NewClient(c Config) (Client, error) {
+// uses V15 of the API.
+func NewClient(c Config) Client {
 	if len(c.Endpoint) == 0 {
 		c.Endpoint = EndpointProduction
 	}
@@ -70,8 +70,7 @@ func NewClient(c Config) (Client, error) {
 		endpoint:   c.Endpoint,
 		httpClient: http.DefaultClient,
 		useragent:  c.UserAgent,
-		ip:         c.IP,
-	}, nil
+		ip:         c.IP}
 }
 
 type client struct {
@@ -84,7 +83,7 @@ type client struct {
 }
 
 // NewSearchEvent creates a new SearchEvent which can then be altered
-func NewSearchEvent() (*SearchEvent, error) {
+func NewSearchEvent() *SearchEvent {
 	return &SearchEvent{
 		ActionEvent: &ActionEvent{
 			Language:     "en",
@@ -96,11 +95,11 @@ func NewSearchEvent() (*SearchEvent, error) {
 		QueryText:      "",
 		ActionCause:    "interfaceLoad",
 		Contextual:     false,
-	}, nil
+	}
 }
 
 // NewClickEvent creates a new ClickEvent which can then be altered
-func NewClickEvent() (*ClickEvent, error) {
+func NewClickEvent() *ClickEvent {
 	return &ClickEvent{
 		ActionEvent: &ActionEvent{
 			Language:     "en",
@@ -115,11 +114,11 @@ func NewClickEvent() (*ClickEvent, error) {
 		SourceName:       "",
 		DocumentPosition: 0,
 		ActionCause:      "documentOpen",
-	}, nil
+	}
 }
 
 // NewCustomEvent creates a new SearchEvent which can then be altered
-func NewCustomEvent() (*CustomEvent, error) {
+func NewCustomEvent() *CustomEvent {
 	return &CustomEvent{
 		ActionEvent: &ActionEvent{
 			Language:     "en",
@@ -130,7 +129,7 @@ func NewCustomEvent() (*CustomEvent, error) {
 		EventType:          "",
 		EventValue:         "",
 		LastSearchQueryUID: "",
-	}, nil
+	}
 }
 
 // NewViewEvent creates a ViewEvent which can then be changed
@@ -163,8 +162,8 @@ type CustomEventResponse struct{}
 // VisitResponse is the response to a Visit call
 type VisitResponse struct{}
 
-func (c *client) GetCookies() ([]*http.Cookie, error) {
-	return c.cookies, nil
+func (c *client) GetCookies() []*http.Cookie {
+	return c.cookies
 }
 
 func (c *client) SendSearchEvent(event *SearchEvent) error {
