@@ -1,5 +1,7 @@
 package analytics
 
+// ActionEvent Basic incomplete analytics event type, contains most of the information
+// sent from a search ui to the analytics
 type ActionEvent struct {
 	Language            string                 `json:"language"`
 	Device              string                 `json:"device"`
@@ -16,6 +18,8 @@ type ActionEvent struct {
 	OriginLevel3        string                 `json:"originLevel3,omitempty"`
 }
 
+// SearchEvent Is a structure reprensenting a search event sent to the analytics
+// It incorporate an ActionEvent and adds more fields.
 type SearchEvent struct {
 	*ActionEvent
 	SearchQueryUID  string       `json:"searchQueryUid"`
@@ -30,11 +34,15 @@ type SearchEvent struct {
 	Results         []ResultHash `json:"results,omitempty"`
 }
 
+// ResultHash Is a type used by the analytics to describe a result that was
+// returned by a query that is usually sent with a search event.
 type ResultHash struct {
 	DocumentURI     string `json:"documentUri"`
 	DocumentURIHash string `json:"documentUriHash"`
 }
 
+// ClickEvent Is a structure reprensenting a click event sent to the analytics
+// It incorporate an ActionEvent and adds more fields.
 type ClickEvent struct {
 	*ActionEvent
 	DocumentURI      string `json:"documentUri"`
@@ -50,6 +58,8 @@ type ClickEvent struct {
 	RankingModifier  string `json:"rankingModifier,omitempty"`
 }
 
+// CustomEvent Is a structure reprensenting a custom event sent to the analytics
+// It incorporate an ActionEvent and adds more fields.
 type CustomEvent struct {
 	*ActionEvent
 	EventType          string `json:"eventType"`
@@ -57,6 +67,8 @@ type CustomEvent struct {
 	LastSearchQueryUID string `json:"lastSearchQueryUid,omitempty"`
 }
 
+// ViewEvent Is a structure reprensenting a view event sent to the analytics
+// It incorporate an ActionEvent and adds more fields.
 type ViewEvent struct {
 	*ActionEvent
 	PageURI      string `json:"location"`
