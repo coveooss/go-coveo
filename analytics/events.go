@@ -52,6 +52,7 @@ type ClickEvent struct {
 	SourceName       string `json:"sourceName"`
 	DocumentPosition int    `json:"documentPosition"`
 	ActionCause      string `json:"actionCause"`
+	ViewMethod       string `json:"viewMethod,omitempty"`
 	DocumentTitle    string `json:"documentTitle,omitempty"`
 	DocumentURL      string `json:"documentUrl,omitempty"`
 	QueryPipeline    string `json:"queryPipeline,omitempty"`
