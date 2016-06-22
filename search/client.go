@@ -79,12 +79,12 @@ func (c *client) Query(q Query) (*Response, error) {
 }
 
 func (c *client) ListFacetValues(field string, maximumNumberOfValues int) (*FacetValues, error) {
-	req, err := http.NewRequest("GET", c.endpoint + "values?field=" + field + "&maximumNumberOfValues=" + strconv.Itoa(maximumNumberOfValues), nil)
+	req, err := http.NewRequest("GET", c.endpoint+"values?field="+field+"&maximumNumberOfValues="+strconv.Itoa(maximumNumberOfValues), nil)
 	if err != nil {
 		return nil, err
 	}
 
-	req.Header.Add("Authorization", "Bearer " + c.token)
+	req.Header.Add("Authorization", "Bearer "+c.token)
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
