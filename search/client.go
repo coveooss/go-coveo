@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"encoding/json"
 	"net/http"
+	"net/url"
+	"strconv"
 )
 
 const (
@@ -79,7 +81,19 @@ func (c *client) Query(q Query) (*Response, error) {
 }
 
 func (c *client) ListFacetValues(field string, maximumNumberOfValues int) (*FacetValues, error) {
-	req, err := http.NewRequest("GET", c.endpoint+"values?field="+field+"&maximumNumberOfValues="+strconv.Itoa(maximumNumberOfValues), nil)
+	url, err := url.Parse(c.endpoint)
+	if err != nil {
+		return nil, err
+	}
+
+	q := url.Query()
+	q.Set("field", field)
+	q.Set("maximumNumberOfValues", strconv.Itoa(maximumNumberOfValues))
+
+	url.RawQuery = q.Encode()
+	url.Path = url.Path + "values"
+
+	req, err := http.NewRequest("GET", url.String(), nil)
 	if err != nil {
 		return nil, err
 	}
