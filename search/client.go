@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"encoding/json"
 	"net/http"
+	"net/url"
+	"strconv"
 )
 
 const (
@@ -18,6 +20,7 @@ const (
 // Client is the search client to make search requests
 type Client interface {
 	Query(q Query) (*Response, error)
+	ListFacetValues(field string, maximumNumberOfValues int) (*FacetValues, error)
 }
 
 // Config is used to configure a new client
@@ -75,4 +78,35 @@ func (c *client) Query(q Query) (*Response, error) {
 	queryResponse := &Response{}
 	err = json.NewDecoder(resp.Body).Decode(queryResponse)
 	return queryResponse, err
+}
+
+func (c *client) ListFacetValues(field string, maximumNumberOfValues int) (*FacetValues, error) {
+	url, err := url.Parse(c.endpoint)
+	if err != nil {
+		return nil, err
+	}
+
+	q := url.Query()
+	q.Set("field", field)
+	q.Set("maximumNumberOfValues", strconv.Itoa(maximumNumberOfValues))
+
+	url.RawQuery = q.Encode()
+	url.Path = url.Path + "values"
+
+	req, err := http.NewRequest("GET", url.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Authorization", "Bearer "+c.token)
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	facetValues := &FacetValues{}
+	err = json.NewDecoder(resp.Body).Decode(facetValues)
+	return facetValues, nil
 }
