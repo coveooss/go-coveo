@@ -104,10 +104,12 @@ func (c *client) DeleteDocument(documentID, sourceID string) error {
 }
 
 func (c *client) PushIdentity(i Identity, providerID string) error {
+	// TODO: Implement this method
 	return nil
 }
 
 func (c *client) DeleteIdentity(i Identity, providerID string) error {
+	// TODO: Implement this method
 	return nil
 }
 
