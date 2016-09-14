@@ -3,6 +3,7 @@ package analytics
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strings"
 )
@@ -270,6 +271,10 @@ func (c *client) sendRawEventRequest(method string, path string, body string) er
 		return err
 	}
 	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		fmt.Printf("\nRequest response error (%d): %s\n", resp.StatusCode, string(body))
+	}
 
 	if c.cookies == nil {
 		cookies := resp.Cookies()
