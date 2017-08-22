@@ -27,7 +27,7 @@ type Client interface {
 	// SendSearchesEvent sends multiple searchEvent to the analytics service,
 	// using the batch call, as the response is not important it only
 	// returns an error
-	SendSearchesEvent([]SearchEvent) error
+	SendSearchesEvent([]*SearchEvent) error
 
 	// SendClickEvent sends a click to the analytics service, as the
 	// response is not important it only returns an error
@@ -35,7 +35,7 @@ type Client interface {
 
 	// SendCustomEvent sends a custom event to the analytics service, as the
 	// response is not important it only returns an error
-	SendCustomEvent(CustomEvent) error
+	SendCustomEvent(*CustomEvent) error
 
 	// SendViewEvent sends a view event to the analytics service, as the
 	// response is not important it only returns an error
@@ -171,7 +171,7 @@ func (c *client) SendSearchEvent(event *SearchEvent) error {
 	return err
 }
 
-func (c *client) SendSearchesEvent(event []SearchEvent) error {
+func (c *client) SendSearchesEvent(event []*SearchEvent) error {
 	return nil
 }
 
@@ -181,7 +181,7 @@ func (c *client) SendClickEvent(event *ClickEvent) error {
 }
 
 // SendCustomEvent Send a request to usage analytics to create a new custom event.
-func (c *client) SendCustomEvent(event CustomEvent) error {
+func (c *client) SendCustomEvent(event *CustomEvent) error {
 	err := c.sendEventRequest("custom/", event)
 	return err
 }
