@@ -71,7 +71,10 @@ type CustomEvent struct {
 // It incorporate an ActionEvent and adds more fields.
 type ViewEvent struct {
 	*ActionEvent
-	PageURI      string `json:"location"`
-	PageReferrer string `json:"referrer,omitempty"`
-	PageTitle    string `json:"title"`
+	PageURI        string `json:"location"`
+	PageReferrer   string `json:"referrer,omitempty"`
+	PageTitle      string `json:"title"`
+	ContentIDKey   string `json:"contendIdKey,omitempty"`
+	ContentIDValue string `json:"contentIdValue,omitempty"`
+	ContentType    string `json:"contentType,omitempty"`
 }
