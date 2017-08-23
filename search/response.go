@@ -12,6 +12,7 @@ type Response struct {
 	Pipeline           string          `json:"pipeline"`
 	GroupByResults     []GroupByResult `json:"groupByResults,omitempty"`
 	Results            []Result        `json:"results,omitempty"`
+	SplitTestRun       string          `json:"splitTestRun, omitempty"`
 }
 
 // Result A single result returned from a query to the Coveo index.
