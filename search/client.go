@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"io"
 )
 
 const (
@@ -25,8 +26,9 @@ type Client interface {
 
 // Config is used to configure a new client
 type Config struct {
-	Token     string
-	UserAgent string
+	Token          string
+	UserAgent      string
+	OrganizationId string
 	// Endpoint is used if you want to use custom endpoints (dev,staging,testing)
 	Endpoint string
 }
@@ -40,6 +42,7 @@ func NewClient(c Config) (Client, error) {
 	return &client{
 		token:      c.Token,
 		endpoint:   c.Endpoint,
+		orgId:      c.OrganizationId,
 		httpClient: http.DefaultClient,
 		useragent:  c.UserAgent,
 	}, nil
@@ -49,6 +52,7 @@ type client struct {
 	httpClient *http.Client
 	token      string
 	endpoint   string
+	orgId      string
 	useragent  string
 }
 
@@ -59,15 +63,12 @@ func (c *client) Query(q Query) (*Response, error) {
 	}
 	buf := bytes.NewReader(marshalledQuery)
 
-	req, err := http.NewRequest("POST", c.endpoint, buf)
-	if err != nil {
-		return nil, err
+	headers := map[string]string{
+		"Content-Type": "application/json",
+		"Accepts":      "application/json",
 	}
 
-	req.Header.Add("Authorization", "Bearer "+c.token)
-	req.Header.Add("Content-Type", "application/json")
-	req.Header.Add("Accepts", "application/json")
-	req.Header.Set("User-Agent", c.useragent)
+	req, err := createRequest(c, "POST", map[string]string{}, headers, c.endpoint, buf)
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
@@ -81,24 +82,22 @@ func (c *client) Query(q Query) (*Response, error) {
 }
 
 func (c *client) ListFacetValues(field string, maximumNumberOfValues int) (*FacetValues, error) {
-	url, err := url.Parse(c.endpoint)
+	url, err := url.Parse(c.endpoint + "/values")
 	if err != nil {
 		return nil, err
 	}
 
-	q := url.Query()
-	q.Set("field", field)
-	q.Set("maximumNumberOfValues", strconv.Itoa(maximumNumberOfValues))
-
-	url.RawQuery = q.Encode()
-	url.Path = url.Path + "values"
-
-	req, err := http.NewRequest("GET", url.String(), nil)
-	if err != nil {
-		return nil, err
+	queryParams := map[string]string{
+		"field":                 field,
+		"maximumNumberOfValues": strconv.Itoa(maximumNumberOfValues),
 	}
 
-	req.Header.Add("Authorization", "Bearer "+c.token)
+	headers := map[string]string{
+		"Content-Type": "application/json",
+		"Accepts":      "application/json",
+	}
+
+	req, err := createRequest(c, "GET", queryParams, headers, url.String(), nil)
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
@@ -109,4 +108,26 @@ func (c *client) ListFacetValues(field string, maximumNumberOfValues int) (*Face
 	facetValues := &FacetValues{}
 	err = json.NewDecoder(resp.Body).Decode(facetValues)
 	return facetValues, nil
+}
+
+func createRequest(client *client, reqType string, queryStringParams map[string]string, customHeaders map[string]string, endpoint string, body io.Reader) (*http.Request, error) {
+	req, err := http.NewRequest(reqType, endpoint, body)
+	if err != nil {
+		return nil, err
+	}
+
+	customHeaders["Authorization"] = "Bearer " + client.token
+	customHeaders["User-Agent"] = client.useragent
+	for key, value := range customHeaders {
+		req.Header.Add(key, value)
+	}
+
+	queryStringParams["organizationId"] = client.orgId
+	urlQuery := req.URL.Query()
+	for key, value := range queryStringParams {
+		urlQuery.Add(key, value)
+	}
+	req.URL.RawQuery = urlQuery.Encode()
+
+	return req, err
 }
