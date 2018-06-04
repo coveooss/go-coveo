@@ -141,9 +141,9 @@ func NewViewEvent() *ViewEvent {
 			OriginLevel1: "default",
 			OriginLevel2: "All",
 		},
-		PageURI:      "",
-		PageReferrer: "",
-		PageTitle:    "",
+		Location: "",
+		Referrer: "",
+		Title:    "",
 	}
 }
 
