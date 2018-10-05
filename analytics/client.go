@@ -3,6 +3,8 @@ package analytics
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
+	"io/ioutil"
 	"net/http"
 	"strings"
 )
@@ -237,6 +239,13 @@ func (c *client) sendEventRequest(path string, event interface{}) error {
 		return err
 	}
 	defer resp.Body.Close()
+	if resp.StatusCode != 200 {
+		body, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			return err
+		}
+		return errors.New(string(body[:]))
+	}
 
 	if c.cookies == nil {
 		cookies := resp.Cookies()
