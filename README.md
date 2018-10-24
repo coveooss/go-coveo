@@ -11,6 +11,25 @@ go-coveo is a Go client library for accessing the [Coveo Search API](https://doc
 
 https://godoc.org/github.com/coveo/go-coveo/analytics
 
+## Example usage
+```Go
+import "github.com/coveo/go-coveo/analytics"
+
+uaConfig := analytics.Config {
+    Token: "My_Token", 
+    UserAgent: "Some UserAgent", 
+    IP: "Some IP", 
+    Endpoint: "https://my.analytics.endpoint.com"
+}
+uaClient := analytics.NewClient(uaConfig)
+searchEvent := analytics.NewSearchEvent()
+searchEvent.SearchQueryUID = "myQueryUID"
+if err := uaClient.SendSearchEvent(searchEvent); err != nil {
+    // Error
+}
+...
+```
+
 
 # Search client documentation
 
